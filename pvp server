@@ -1,0 +1,29 @@
+import socket, threading, json
+
+players={}
+lock=threading.Lock()
+
+def handle(c,pid):
+    players[pid]={"hp":200}
+    while True:
+        try:
+            msg=json.loads(c.recv(1024).decode())
+            if msg["action"]=="hit":
+                with lock:
+                    players[msg["target"]]["hp"]-=msg["damage"]
+            c.send(json.dumps(players).encode())
+        except:
+            break
+    del players[pid]
+    c.close()
+
+s=socket.socket()
+s.bind(("0.0.0.0",6666))
+s.listen()
+pid=0
+print("PvP server running")
+
+while True:
+    c,_=s.accept()
+    pid+=1
+    threading.Thread(target=handle,args=(c,pid)).start()
