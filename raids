@@ -1,0 +1,51 @@
+import pygame, socket, json, random
+
+pygame.init()
+screen = pygame.display.set_mode((900,600))
+clock = pygame.time.Clock()
+
+angel_idle = pygame.image.load("assets/angel_idle.png")
+angel_attack = pygame.image.load("assets/angel_attack.png")
+boss_img = pygame.image.load("assets/boss.png")
+
+idle_frames = [angel_idle.subsurface(i*64,0,64,64) for i in range(4)]
+atk_frames = [angel_attack.subsurface(i*64,0,64,64) for i in range(4)]
+
+sock = socket.socket()
+sock.connect(("127.0.0.1",5555))
+
+frame = 0
+atk_cd = 0
+boss = {}
+
+running=True
+while running:
+    clock.tick(60)
+    frame+=1
+    screen.fill((20,20,40))
+
+    for e in pygame.event.get():
+        if e.type==pygame.QUIT:
+            running=False
+
+    keys = pygame.key.get_pressed()
+    if keys[pygame.K_SPACE] and atk_cd<=0:
+        dmg=random.randint(20,30)
+        sock.send(json.dumps({"action":"attack","damage":dmg}).encode())
+        boss=json.loads(sock.recv(2048).decode())
+        atk_cd=20
+
+    atk_cd-=1
+
+    if boss:
+        hp_ratio=boss["hp"]/boss["max_hp"]
+        pygame.draw.rect(screen,(150,0,0),(200,50,500*hp_ratio,20))
+        screen.blit(boss_img,(350,100))
+
+    frames = atk_frames if atk_cd>15 else idle_frames
+    img = frames[(frame//10)%len(frames)]
+    screen.blit(img,(420,420))
+
+    pygame.display.flip()
+
+pygame.quit()
