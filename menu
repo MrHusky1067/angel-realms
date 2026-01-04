@@ -1,0 +1,14 @@
+angel_realms/
+├── ui_client.py        # Main menu, character select, raid lobby
+├── raid_client.py      # In-raid gameplay (pygame)
+├── server_raid.py      # Online raid server
+├── server_pvp.py       # PvP server
+├── save_data.json      # Multiple characters save
+└── assets/
+    ├── portraits/
+    │   ├── seraph.png
+    │   ├── guardian.png
+    │   └── archangel.png
+    ├── angel_idle.png
+    ├── angel_attack.png
+    └── boss.png
