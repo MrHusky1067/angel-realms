@@ -1,0 +1,16 @@
+{
+  "characters": [
+    {
+      "name": "Arael",
+      "class": "Seraph",
+      "level": 10,
+      "enhanced": ["Damage Boost"]
+    },
+    {
+      "name": "Thalos",
+      "class": "Guardian",
+      "level": 6,
+      "enhanced": []
+    }
+  ]
+}
