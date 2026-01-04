@@ -1,0 +1,161 @@
+import pygame
+import json
+import random
+import sys
+
+pygame.init()
+WIDTH, HEIGHT = 900, 600
+screen = pygame.display.set_mode((WIDTH, HEIGHT))
+pygame.display.set_caption("Angel Realms – Campaign")
+clock = pygame.time.Clock()
+
+FONT = pygame.font.SysFont("arial", 24)
+BIG = pygame.font.SysFont("arial", 36)
+
+# ------------------------
+# LOAD SAVE DATA
+# ------------------------
+
+with open("save_data.json") as f:
+    SAVE = json.load(f)
+
+# For now, use first character (UI can pass this later)
+player = SAVE["characters"][0]
+
+# ------------------------
+# ASSETS (placeholders OK)
+# ------------------------
+
+angel_img = pygame.Surface((60, 60))
+angel_img.fill((230, 230, 255))
+
+demon_img = pygame.Surface((60, 60))
+demon_img.fill((180, 50, 50))
+
+boss_img = pygame.Surface((100, 100))
+boss_img.fill((120, 0, 0))
+
+# ------------------------
+# REALMS
+# ------------------------
+
+REALMS = [
+    {"name": "Ash Realm", "enemy_hp": 80, "enemy_dmg": 10},
+    {"name": "Crimson Depths", "enemy_hp": 120, "enemy_dmg": 14},
+    {"name": "Infernal Dominion", "enemy_hp": 170, "enemy_dmg": 18},
+    {"name": "Abyssal Citadel", "enemy_hp": 230, "enemy_dmg": 22},
+    {"name": "Throne of Hell", "enemy_hp": 300, "enemy_dmg": 26}
+]
+
+# ------------------------
+# PLAYER STATS
+# ------------------------
+
+def calc_player_stats():
+    base_hp = 100 + player["level"] * 15
+    attack = 20 + player["level"] * 4
+    return base_hp, attack
+
+# ------------------------
+# COMBAT LOOP
+# ------------------------
+
+def combat(enemy_hp, enemy_dmg, boss=False):
+    player_hp, player_atk = calc_player_stats()
+    cooldown = 0
+
+    while True:
+        clock.tick(60)
+        screen.fill((20, 20, 40))
+
+        for e in pygame.event.get():
+            if e.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+
+        keys = pygame.key.get_pressed()
+        if keys[pygame.K_SPACE] and cooldown <= 0:
+            dmg = random.randint(player_atk - 5, player_atk + 5)
+            enemy_hp -= dmg
+            cooldown = 25
+
+        if random.random() < 0.02:
+            player_hp -= enemy_dmg
+
+        cooldown -= 1
+
+        # Draw entities
+        screen.blit(angel_img, (150, 380))
+        screen.blit(boss_img if boss else demon_img, (600, 300))
+
+        # UI
+        screen.blit(FONT.render(f"Your HP: {player_hp}", True, (255,255,255)), (30, 30))
+        screen.blit(FONT.render(f"Enemy HP: {enemy_hp}", True, (255,100,100)), (30, 60))
+        screen.blit(FONT.render("Press SPACE to attack", True, (200,200,200)), (30, 520))
+
+        pygame.display.flip()
+
+        if enemy_hp <= 0:
+            return True
+        if player_hp <= 0:
+            return False
+
+# ------------------------
+# CAMPAIGN LOOP
+# ------------------------
+
+def run_campaign():
+    for realm in REALMS:
+        realm_name = realm["name"]
+
+        # Realm intro
+        intro = True
+        while intro:
+            screen.fill((10, 10, 30))
+            screen.blit(BIG.render(realm_name, True, (255, 80, 80)), (280, 260))
+            screen.blit(FONT.render("Press ENTER to begin", True, (255,255,255)), (330, 310))
+            pygame.display.flip()
+
+            for e in pygame.event.get():
+                if e.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit()
+                if e.type == pygame.KEYDOWN and e.key == pygame.K_RETURN:
+                    intro = False
+
+        # Normal fights
+        for _ in range(3):
+            win = combat(realm["enemy_hp"], realm["enemy_dmg"])
+            if not win:
+                return False
+
+        # Boss fight
+        win = combat(realm["enemy_hp"] * 2, realm["enemy_dmg"] + 5, boss=True)
+        if not win:
+            return False
+
+        # Rewards
+        player["level"] += 1
+
+        # Save progress (persistent)
+        with open("save_data.json", "w") as f:
+            json.dump(SAVE, f, indent=2)
+
+    return True
+
+# ------------------------
+# MAIN
+# ------------------------
+
+result = run_campaign()
+
+screen.fill((0, 0, 0))
+if result:
+    msg = "CAMPAIGN COMPLETE!"
+else:
+    msg = "YOU HAVE FALLEN..."
+
+screen.blit(BIG.render(msg, True, (255,255,255)), (280, 280))
+pygame.display.flip()
+pygame.time.wait(3000)
+pygame.quit()
