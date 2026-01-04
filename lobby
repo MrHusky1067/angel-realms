@@ -1,0 +1,105 @@
+import pygame, json, sys
+
+pygame.init()
+WIDTH, HEIGHT = 900, 600
+screen = pygame.display.set_mode((WIDTH, HEIGHT))
+pygame.display.set_caption("Angel Realms")
+clock = pygame.time.Clock()
+
+FONT = pygame.font.SysFont("arial", 24)
+BIG = pygame.font.SysFont("arial", 42)
+
+with open("save_data.json") as f:
+    SAVE = json.load(f)
+
+CHARACTERS = SAVE["characters"]
+
+PORTRAITS = {
+    "Seraph": pygame.image.load("assets/portraits/seraph.png"),
+    "Guardian": pygame.image.load("assets/portraits/guardian.png"),
+    "Archangel": pygame.image.load("assets/portraits/archangel.png")
+}
+
+class Button:
+    def __init__(self, text, rect):
+        self.text = text
+        self.rect = pygame.Rect(rect)
+
+    def draw(self):
+        pygame.draw.rect(screen, (80,80,120), self.rect)
+        pygame.draw.rect(screen, (255,255,255), self.rect, 2)
+        screen.blit(FONT.render(self.text, True, (255,255,255)),
+                    (self.rect.x+15, self.rect.y+10))
+
+    def clicked(self, pos):
+        return self.rect.collidepoint(pos)
+
+STATE = "menu"
+selected = None
+
+btn_play = Button("Play", (380,260,140,50))
+btn_quit = Button("Quit", (380,330,140,50))
+btn_back = Button("Back", (30,520,120,40))
+btn_start = Button("Start Raid", (360,450,180,50))
+
+def menu():
+    screen.fill((20,20,40))
+    screen.blit(BIG.render("ANGEL REALMS", True, (255,255,255)), (280,120))
+    btn_play.draw()
+    btn_quit.draw()
+
+def select():
+    screen.fill((15,15,35))
+    screen.blit(BIG.render("Select Angel", True, (255,255,255)), (300,40))
+    x = 100
+    for i,c in enumerate(CHARACTERS):
+        img = pygame.transform.scale(PORTRAITS[c["class"]], (120,120))
+        rect = pygame.Rect(x,150,120,120)
+        screen.blit(img, rect)
+        pygame.draw.rect(screen,(255,255,255),rect,2)
+        screen.blit(FONT.render(c["name"],True,(255,255,255)),(x,280))
+        screen.blit(FONT.render(f"{c['class']} Lv{c['level']}",True,(200,200,200)),(x,310))
+        if rect.collidepoint(pygame.mouse.get_pos()) and pygame.mouse.get_pressed()[0]:
+            return i
+        x += 200
+    btn_back.draw()
+    return None
+
+def lobby():
+    screen.fill((10,10,30))
+    screen.blit(BIG.render("Raid Lobby", True, (255,80,80)), (330,60))
+    screen.blit(FONT.render("• You (Ready)", True, (200,255,200)), (120,180))
+    btn_start.draw()
+    btn_back.draw()
+
+running=True
+while running:
+    clock.tick(60)
+    for e in pygame.event.get():
+        if e.type == pygame.QUIT:
+            running=False
+        if e.type == pygame.MOUSEBUTTONDOWN:
+            p = pygame.mouse.get_pos()
+            if STATE=="menu":
+                if btn_play.clicked(p): STATE="select"
+                if btn_quit.clicked(p): running=False
+            elif STATE=="select":
+                idx = select()
+                if idx is not None:
+                    selected = CHARACTERS[idx]
+                    STATE="lobby"
+                if btn_back.clicked(p): STATE="menu"
+            elif STATE=="lobby":
+                if btn_start.clicked(p):
+                    pygame.quit()
+                    import raid_client
+                if btn_back.clicked(p): STATE="select"
+
+    if STATE=="menu": menu()
+    elif STATE=="select": select()
+    elif STATE=="lobby": lobby()
+
+    pygame.display.flip()
+
+pygame.quit()
+sys.exit()
