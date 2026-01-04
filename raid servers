@@ -1,0 +1,42 @@
+import socket, threading, json, time
+
+boss = {
+    "hp":3000,
+    "max_hp":3000,
+    "phase":1,
+    "start":time.time(),
+    "enrage":180,
+    "alive":True
+}
+
+lock = threading.Lock()
+
+def update():
+    pct=boss["hp"]/boss["max_hp"]
+    if pct<0.66: boss["phase"]=2
+    if pct<0.33: boss["phase"]=3
+
+def handle(c):
+    while boss["alive"]:
+        try:
+            msg=json.loads(c.recv(1024).decode())
+            with lock:
+                if msg["action"]=="attack":
+                    boss["hp"]-=msg["damage"]
+                    update()
+                    if boss["hp"]<=0: boss["alive"]=False
+                if time.time()-boss["start"]>boss["enrage"]:
+                    boss["alive"]=False
+            c.send(json.dumps(boss).encode())
+        except:
+            break
+    c.close()
+
+s=socket.socket()
+s.bind(("0.0.0.0",5555))
+s.listen()
+print("Raid server running")
+
+while True:
+    c,_=s.accept()
+    threading.Thread(target=handle,args=(c,)).start()
